@@ -3,6 +3,7 @@ import os
 import pathlib
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
+from urllib.parse import urljoin, urlsplit
 
 
 def request_tululu(url):
@@ -16,27 +17,46 @@ def check_for_redirect(response):
         raise requests.HTTPError
 
 
-def search_name_book(url):
+def parse_a_book(url):
     response = request_tululu(url)
     soup = BeautifulSoup(response.text, 'lxml')
     name_book, book_author = soup.find('h1').text.split(sep='::')
-    return name_book
+    book_cover =soup.find('div', class_='bookimage').find('img')['src']
+    return name_book, book_cover
 
 
+def download_image(id, book_url):
+    img_url = urljoin(url, parse_a_book(book_url)[1])
+    name_img = sanitize_filename(parse_a_book(book_url)[0]).strip()
+    folder_name = os.path.join('img', f'{id}.{name_img}{extract_file_extension(img_url)}')
+    pathlib.Path('img').mkdir(
+        parents=True,
+        exist_ok=True
+    )
+    response = request_tululu(img_url)
+    with open(folder_name, 'wb') as file:
+        file.write(response.content)
 
-def download_txt(folder='books'):
+
+def extract_file_extension(url):
+    path, filename_tail = os.path.split(urlsplit(url).path)
+    return os.path.splitext(filename_tail)[-1]
+
+
+def download_txt(url):
     for id in range(1,11):
         try:
-            book_url = f'https://tululu.org/b{id}/'
+            book_url = f'{url}b{id}/'
             response = request_tululu(book_url)
             check_for_redirect(response)
-            name_book = sanitize_filename(search_name_book(book_url)).strip()
-            folder_name = os.path.join(folder,f'{id}.{name_book}.txt')
-            pathlib.Path(folder).mkdir(
+            download_image(id, book_url)
+            name_book = sanitize_filename(parse_a_book(book_url)[0]).strip()
+            folder_name = os.path.join('books',f'{id}.{name_book}.txt')
+            pathlib.Path('books').mkdir(
                 parents=True,
                 exist_ok=True
             )
-            download_url = f'https://tululu.org/txt.php?id={id}'
+            download_url = f'{url}txt.php?id={id}'
             response = request_tululu(download_url)
             with open(folder_name, 'wb') as file:
                 file.write(response.content)
@@ -45,4 +65,5 @@ def download_txt(folder='books'):
 
 
 if __name__ == '__main__':
-    download_txt()
+    url = 'https://tululu.org/'
+    download_txt(url)
