@@ -41,15 +41,14 @@ def check_for_redirect(response):
         raise requests.HTTPError
 
 
-def parse_book_page(book_url):
-    response = request_tululu(book_url)
+def parse_book_page(response):
     soup = BeautifulSoup(response.text, 'lxml')
-    name_book, book_author = soup.find('h1').text.split(sep='::')
+    book_name, book_author = soup.find('h1').text.split(sep='::')
     book_cover = soup.find('div', class_='bookimage').find('img')['src']
     comments = [comment.text for comment in soup.select('.texts .black')]
     genres = [genres.text for genres in soup.select('span.d_book a')]
     book_page = {
-        'title': name_book,
+        'title': book_name,
         'author': book_author,
         'cover': book_cover,
         'comments': comments,
@@ -58,9 +57,9 @@ def parse_book_page(book_url):
     return book_page
 
 
-def download_image(id, book_url):
-    img_url = urljoin(url, parse_book_page(book_url)['cover'])
-    name_img = sanitize_filename(parse_book_page(book_url)['title']).strip()
+def download_image(id, book_page):
+    img_url = urljoin(url, book_page['cover'])
+    name_img = sanitize_filename(book_page['title']).strip()
     folder_name = os.path.join(
         'img', f'{id}.{name_img}{extract_file_extension(img_url)}'
         )
@@ -68,7 +67,8 @@ def download_image(id, book_url):
         parents=True,
         exist_ok=True
     )
-    response = request_tululu(img_url)
+    response = requests.get(img_url)
+    response.raise_for_status()
     with open(folder_name, 'wb') as file:
         file.write(response.content)
 
@@ -78,15 +78,17 @@ def extract_file_extension(url):
     return os.path.splitext(filename_tail)[-1]
 
 
-def download_txt(id, url):
-    name_book = sanitize_filename(parse_book_page(book_url)['title']).strip()
-    folder_name = os.path.join('books', f'{id}.{name_book}.txt')
+def download_txt(id, url, book_page):
+    book_name = sanitize_filename(book_page['title']).strip()
+    folder_name = os.path.join('books', f'{id}.{book_name}.txt')
     pathlib.Path('books').mkdir(
         parents=True,
         exist_ok=True
     )
-    download_url = f'{url}txt.php?id={id}'
-    response = request_tululu(download_url)
+    download_url = f'{url}txt.php'
+    params = {'id': id}
+    response = requests.get(download_url, params=params)
+    response.raise_for_status()
     with open(folder_name, 'wb') as file:
         file.write(response.content)
 
@@ -99,12 +101,14 @@ if __name__ == '__main__':
     for id in range(start_id, end_id):
         try:
             book_url = f'{url}b{id}/'
-            response = request_tululu(book_url)
+            response = requests.get(book_url)
+            response.raise_for_status()
             check_for_redirect(response)
-            download_image(id, book_url)
-            download_txt(id, url)
-            print('Название:', parse_book_page(book_url)['title'])
-            print('Автор:', parse_book_page(book_url)['author'])
+            book_page = parse_book_page(response)
+            download_image(id, book_page)
+            download_txt(id, url, book_page)
+            print('Название:', book_page['title'])
+            print('Автор:', book_page['author'])
         except requests.HTTPError:
             continue
         except requests.exceptions.ConnectionError:
