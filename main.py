@@ -17,12 +17,15 @@ def check_for_redirect(response):
         raise requests.HTTPError
 
 
-def parse_a_book(url):
-    response = request_tululu(url)
+def parse_a_book(book_url):
+    response = request_tululu(book_url)
     soup = BeautifulSoup(response.text, 'lxml')
     name_book, book_author = soup.find('h1').text.split(sep='::')
     book_cover =soup.find('div', class_='bookimage').find('img')['src']
-    return name_book, book_cover
+    all_comment = soup.find_all('div', class_='texts')
+    for comment in all_comment:
+        print(comment.find('span').text)
+    return name_book, book_cover, all_comment
 
 
 def download_image(id, book_url):
@@ -51,6 +54,8 @@ def download_txt(url):
             check_for_redirect(response)
             download_image(id, book_url)
             name_book = sanitize_filename(parse_a_book(book_url)[0]).strip()
+            print(name_book)
+            parse_a_book(book_url)
             folder_name = os.path.join('books',f'{id}.{name_book}.txt')
             pathlib.Path('books').mkdir(
                 parents=True,
