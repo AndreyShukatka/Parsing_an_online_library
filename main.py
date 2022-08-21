@@ -1,7 +1,10 @@
 import argparse
-import requests
 import os
 import pathlib
+from datetime import time
+
+import requests
+
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlsplit
@@ -103,4 +106,7 @@ if __name__ == '__main__':
             print('Название:', parse_book_page(book_url)['title'])
             print('Автор:', parse_book_page(book_url)['author'])
         except requests.HTTPError:
+            continue
+        except requests.exceptions.ConnectionError:
+            time.sleep(10)
             continue
