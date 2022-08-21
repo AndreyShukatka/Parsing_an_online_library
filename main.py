@@ -23,10 +23,8 @@ def parse_a_book(book_url):
     name_book, book_author = soup.find('h1').text.split(sep='::')
     book_cover =soup.find('div', class_='bookimage').find('img')['src']
     all_comment = soup.find_all('div', class_='texts')
-    for comment in all_comment:
-        print(comment.find('span').text)
-    return name_book, book_cover, all_comment
-
+    book_ganres = soup.find_all('span', class_='d_book')
+    return name_book, book_cover, all_comment, book_ganres
 
 def download_image(id, book_url):
     img_url = urljoin(url, parse_a_book(book_url)[1])
@@ -46,6 +44,20 @@ def extract_file_extension(url):
     return os.path.splitext(filename_tail)[-1]
 
 
+def search_comment(all_comment):
+    for comment in all_comment:
+        print(comment.find('span').text)
+
+
+def search_ganres(book_ganres):
+    bo_ganres = []
+    for ganres in book_ganres:
+        ganres = ganres.find_all('a')
+        for ganre in ganres:
+            bo_ganres.append(ganre.text)
+    return bo_ganres
+
+
 def download_txt(url):
     for id in range(1,11):
         try:
@@ -54,8 +66,11 @@ def download_txt(url):
             check_for_redirect(response)
             download_image(id, book_url)
             name_book = sanitize_filename(parse_a_book(book_url)[0]).strip()
-            print(name_book)
-            parse_a_book(book_url)
+            print('Заголовок:', name_book)
+            book_ganres = parse_a_book(book_url)[3]
+            print(search_ganres(book_ganres))
+            # all_comment = parse_a_book(book_url)[2]
+            # search_comment(all_comment)
             folder_name = os.path.join('books',f'{id}.{name_book}.txt')
             pathlib.Path('books').mkdir(
                 parents=True,
