@@ -26,6 +26,26 @@ def input_parsing_command_line():
         default = 701,
         type=int
     )
+    parser.add_argument(
+        '--dest_folder',
+        default='library',
+        help = 'Укажите папку для скачивания'
+    )
+    parser.add_argument(
+        '--skip_imgs',
+        help = 'Не скачивать картинки',
+        action='store_true'
+    )
+    parser.add_argument(
+        '--skip_txt',
+        help = 'Не скачивать книгу',
+        action='store_true'
+    )
+    parser.add_argument(
+        '--json_path',
+        help = 'укажите своё имя для *.json файла с результатами',
+        default = 'books_pages'
+    )
     args = parser.parse_args()
     return args
 
@@ -67,12 +87,12 @@ def parse_book_page(response):
     return book_page
 
 
-def download_image(url, book_page):
+def download_image(url, book_page, folder):
     img_url = urljoin(url, book_page['cover'])
     folder_name = os.path.join(
-        'img', extract_file_extension(img_url)
+        folder, 'img', extract_file_extension(img_url)
         )
-    pathlib.Path('img').mkdir(
+    pathlib.Path(folder,'img').mkdir(
         parents=True,
         exist_ok=True
     )
@@ -87,10 +107,10 @@ def extract_file_extension(url):
     return filename_tail
 
 
-def download_txt(url, book_page):
+def download_txt(url, book_page, folder):
     book_name = sanitize_filename(book_page['title']).strip()
-    folder_name = os.path.join('books', f'{book_name}.txt')
-    pathlib.Path('books').mkdir(
+    folder_name = os.path.join(folder,'books', f'{book_name}.txt')
+    pathlib.Path(folder, 'books').mkdir(
         parents=True,
         exist_ok=True
     )
@@ -104,9 +124,14 @@ def download_txt(url, book_page):
     with open(folder_name, 'wb') as file:
         file.write(response.content)
 
-def add_json(list):
+def add_json(list, json_folder, json_name):
     book_page_json = json.dumps(list, ensure_ascii=False)
-    with open("books_pages.json", "a", encoding='utf8') as my_file:
+    folder_name = os.path.join(json_folder, f"{json_name}.json")
+    pathlib.Path(json_folder).mkdir(
+        parents=True,
+        exist_ok=True
+    )
+    with open(folder_name, "a", encoding='utf8') as my_file:
         my_file.write(book_page_json)
 
 
@@ -115,17 +140,21 @@ if __name__ == '__main__':
     url = 'https://tululu.org/'
     args = input_parsing_command_line()
     start_page = args.start_page
-    end_page = args.end_page + 1
+    end_page = args.end_page
     seconds = int(10)
     books_urls = parse_category(url, start_page, end_page)
+    folder = args.dest_folder
+    json_name = args.json_path
     for book_url in books_urls:
         try:
             response = requests.get(book_url)
             response.raise_for_status()
             check_for_redirect(response)
             book_page = parse_book_page(response)
-            download_txt(url, book_page)
-            download_image(url, book_page)
+            if not args.skip_txt:
+                download_txt(url, book_page, folder)
+            if not args.skip_imgs:
+                download_image(url, book_page, folder)
             book_page.pop('cover')
             book_page.pop('id')
             list.append(book_page)
@@ -136,4 +165,4 @@ if __name__ == '__main__':
             logging.warning('Нет соединения с сервером, повторная попытка через 10 секунд.')
             sleep(seconds)
             continue
-    add_json(list)
+    add_json(list, folder, json_name)
