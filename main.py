@@ -1,7 +1,8 @@
 import argparse
 import os
 import pathlib
-from datetime import time
+import logging
+from time import sleep
 
 import requests
 
@@ -30,12 +31,6 @@ def input_parsing_command_line():
     return args
 
 
-def request_tululu(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return response
-
-
 def check_for_redirect(response):
     if response.history:
         raise requests.HTTPError
@@ -57,7 +52,7 @@ def parse_book_page(response):
     return book_page
 
 
-def download_image(id, book_page):
+def download_image(url, id, book_page):
     img_url = urljoin(url, book_page['cover'])
     name_img = sanitize_filename(book_page['title']).strip()
     folder_name = os.path.join(
@@ -98,6 +93,7 @@ if __name__ == '__main__':
     args = input_parsing_command_line()
     start_id = args.start_id
     end_id = args.end_id + 1
+    seconds = int(10)
     for id in range(start_id, end_id):
         try:
             book_url = f'{url}b{id}/'
@@ -105,12 +101,14 @@ if __name__ == '__main__':
             response.raise_for_status()
             check_for_redirect(response)
             book_page = parse_book_page(response)
-            download_image(id, book_page)
+            download_image(url, id, book_page)
             download_txt(id, url, book_page)
             print('Название:', book_page['title'])
             print('Автор:', book_page['author'])
         except requests.HTTPError:
+            logging.warning(f'книги с id:{id} не сушествует')
             continue
         except requests.exceptions.ConnectionError:
-            time.sleep(10)
+            logging.warning('Нет соединения с сервером, повторная попытка через 10 секунд.')
+            sleep(seconds)
             continue
