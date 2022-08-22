@@ -3,13 +3,15 @@ import os
 import pathlib
 import logging
 from time import sleep
+import json
+from pprint import pformat
 
 import requests
 
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlsplit
-
+from parse_tululu_category import parse_category
 
 def input_parsing_command_line():
     parser = argparse.ArgumentParser(
@@ -42,21 +44,24 @@ def parse_book_page(response):
     book_cover = soup.find('div', class_='bookimage').find('img')['src']
     comments = [comment.text for comment in soup.select('.texts .black')]
     genres = [genres.text for genres in soup.select('span.d_book a')]
+    id = soup.find('div', class_="d_comm").find('input', type='hidden')['value']
     book_page = {
-        'title': book_name,
-        'author': book_author,
-        'cover': book_cover,
+        'id': id,
+        'title': book_name.strip(),
+        'author': book_author.strip(),
+        'img_src': os.path.join('img', extract_file_extension(book_cover)),
+        'book_path': os.path.join('books', f'{book_name.strip()}.txt'),
+        'cover':book_cover,
         'comments': comments,
         'genres': genres
     }
     return book_page
 
 
-def download_image(url, id, book_page):
+def download_image(url, book_page):
     img_url = urljoin(url, book_page['cover'])
-    name_img = sanitize_filename(book_page['title']).strip()
     folder_name = os.path.join(
-        'img', f'{id}.{name_img}{extract_file_extension(img_url)}'
+        'img', extract_file_extension(img_url)
         )
     pathlib.Path('img').mkdir(
         parents=True,
@@ -70,45 +75,57 @@ def download_image(url, id, book_page):
 
 def extract_file_extension(url):
     path, filename_tail = os.path.split(urlsplit(url).path)
-    return os.path.splitext(filename_tail)[-1]
+    return filename_tail
 
 
-def download_txt(id, url, book_page):
+def download_txt(url, book_page):
     book_name = sanitize_filename(book_page['title']).strip()
-    folder_name = os.path.join('books', f'{id}.{book_name}.txt')
+    folder_name = os.path.join('books', f'{book_name}.txt')
     pathlib.Path('books').mkdir(
         parents=True,
         exist_ok=True
     )
+    params = {
+        'id': book_page['id']
+    }
     download_url = f'{url}txt.php'
-    params = {'id': id}
     response = requests.get(download_url, params=params)
     response.raise_for_status()
+    check_for_redirect(response)
     with open(folder_name, 'wb') as file:
         file.write(response.content)
 
+def add_json(list):
+    book_page_json = json.dumps(list, ensure_ascii=False)
+    with open("books_pages.json", "a", encoding='utf8') as my_file:
+        my_file.write(book_page_json)
+
 
 if __name__ == '__main__':
+    list =[]
     url = 'https://tululu.org/'
     args = input_parsing_command_line()
     start_id = args.start_id
     end_id = args.end_id + 1
     seconds = int(10)
-    for id in range(start_id, end_id):
+    books_urls = parse_category(url)
+    for book_url in books_urls:
         try:
-            book_url = f'{url}b{id}/'
             response = requests.get(book_url)
             response.raise_for_status()
             check_for_redirect(response)
             book_page = parse_book_page(response)
-            download_image(url, id, book_page)
-            download_txt(id, url, book_page)
-            print('Название:', book_page['title'])
-            print('Автор:', book_page['author'])
+            download_txt(url, book_page)
+            download_image(url, book_page)
+            book_page.pop('cover')
+            book_page.pop('id')
+            list.append(book_page)
         except requests.HTTPError:
-            logging.warning(f'книги с id:{id} не сушествует')
+            logging.warning(f'книги "{book_page["title"]}" нет на сервере')
             continue
         except requests.exceptions.ConnectionError:
             logging.warning('Нет соединения с сервером, повторная попытка через 10 секунд.')
             sleep(seconds)
             continue
+    add_json(list)
+    
