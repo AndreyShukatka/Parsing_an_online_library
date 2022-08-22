@@ -4,10 +4,8 @@ import pathlib
 import logging
 from time import sleep
 import json
-from pprint import pformat
 
 import requests
-
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlsplit
@@ -40,11 +38,11 @@ def check_for_redirect(response):
 
 def parse_book_page(response):
     soup = BeautifulSoup(response.text, 'lxml')
-    book_name, book_author = soup.find('h1').text.split(sep='::')
-    book_cover = soup.find('div', class_='bookimage').find('img')['src']
+    book_name, book_author = soup.select_one('h1').text.split(sep='::')
+    book_cover = soup.select_one('.bookimage img')['src']
     comments = [comment.text for comment in soup.select('.texts .black')]
     genres = [genres.text for genres in soup.select('span.d_book a')]
-    id = soup.find('div', class_="d_comm").find('input', type='hidden')['value']
+    id = soup.select_one('.r_comm input[name="bookid"]')['value']
     book_page = {
         'id': id,
         'title': book_name.strip(),
@@ -128,4 +126,3 @@ if __name__ == '__main__':
             sleep(seconds)
             continue
     add_json(list)
-    
