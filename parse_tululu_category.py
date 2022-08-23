@@ -54,12 +54,23 @@ def input_parsing_command_line():
 def parse_category(url, start_page, end_page):
     books_urls = []
     for id in range(start_page, end_page):
-        fantasy_url = f'{url}l55/{id}'
-        response = requests.get(fantasy_url)
-        soup = BeautifulSoup(response.text, 'lxml')
-        all_books_urls = soup.select('.d_book')
-        for book_url in all_books_urls:
-            books_urls.append(urljoin(url, book_url.select_one('a')['href']))
+        try:
+            fantasy_url = f'{url}l55/{id}'
+            response = requests.get(fantasy_url)
+            response.raise_for_status()
+            check_for_redirect(response)
+            soup = BeautifulSoup(response.text, 'lxml')
+            all_books_urls = soup.select('.d_book')
+            for book_url in all_books_urls:
+                books_urls.append(urljoin(
+                    fantasy_url, book_url.select_one('a')['href']
+                ))
+        except requests.exceptions.ConnectionError:
+            logging.warning(
+                'Нет соединения с сервером, повторная попытка через 10 секунд.'
+            )
+            sleep(seconds)
+            continue
     return books_urls
 
 
@@ -71,7 +82,9 @@ def check_for_redirect(response):
 def parse_book_page(response):
     soup = BeautifulSoup(response.text, 'lxml')
     book_name, book_author = soup.select_one('h1').text.split(sep='::')
-    book_cover = soup.select_one('.bookimage img')['src']
+    book_cover = urljoin(
+        response.url, soup.select_one('.bookimage img')['src']
+    )
     comments = [comment.text for comment in soup.select('.texts .black')]
     genres = [genres.text for genres in soup.select('span.d_book a')]
     id = soup.select_one('.r_comm input[name="bookid"]')['value']
@@ -89,10 +102,10 @@ def parse_book_page(response):
 
 
 def download_image(url, book_page, folder):
-    img_url = urljoin(url, book_page['cover'])
+    img_url = book_page['cover']
     folder_name = os.path.join(
         folder, 'img', extract_file_extension(img_url)
-        )
+    )
     pathlib.Path(folder, 'img').mkdir(
         parents=True,
         exist_ok=True
@@ -126,26 +139,25 @@ def download_txt(url, book_page, folder):
         file.write(response.content)
 
 
-def add_json(list, json_folder, json_name):
-    book_page_json = json.dumps(list, ensure_ascii=False)
+def write_json_file(books_json, json_folder, json_name):
     folder_name = os.path.join(json_folder, f"{json_name}.json")
     pathlib.Path(json_folder).mkdir(
         parents=True,
         exist_ok=True
     )
-    with open(folder_name, "a", encoding='utf8') as my_file:
-        my_file.write(book_page_json)
+    with open(folder_name, "a", encoding='utf8') as file:
+        json.dump(books_json, file, ensure_ascii=False, indent=2)
 
 
 if __name__ == '__main__':
-    list = []
+    books_json = []
     url = 'https://tululu.org/'
     args = input_parsing_command_line()
     start_page = args.start_page
     end_page = args.end_page
     folder = args.dest_folder
     json_name = args.json_path
-    seconds = int(10)
+    seconds = 10
     books_urls = parse_category(url, start_page, end_page)
     for book_url in books_urls:
         try:
@@ -158,7 +170,7 @@ if __name__ == '__main__':
                 download_image(url, book_page, folder)
             book_page.pop('cover')
             book_page.pop('id')
-            list.append(book_page)
+            books_json.append(book_page)
         except requests.HTTPError:
             logging.warning(f'книги "{book_page["title"]}" нет на сервере')
             continue
@@ -168,4 +180,4 @@ if __name__ == '__main__':
             )
             sleep(seconds)
             continue
-    add_json(list, folder, json_name)
+    write_json_file(books_json, folder, json_name)
