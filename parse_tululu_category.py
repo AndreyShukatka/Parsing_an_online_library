@@ -53,9 +53,9 @@ def input_parsing_command_line():
 
 def parse_category(url, start_page, end_page):
     books_urls = []
-    for id in range(start_page, end_page):
+    for book_number in range(start_page, end_page):
         try:
-            fantasy_url = f'{url}l55/{id}'
+            fantasy_url = f'{url}l55/{book_number}'
             response = requests.get(fantasy_url)
             response.raise_for_status()
             check_for_redirect(response)
@@ -65,6 +65,9 @@ def parse_category(url, start_page, end_page):
                 books_urls.append(urljoin(
                     fantasy_url, book_url.select_one('a')['href']
                 ))
+        except requests.HTTPError:
+            logging.warning(f'книги  с ID "{book_number}" нет на сервере')
+            continue
         except requests.exceptions.ConnectionError:
             logging.warning(
                 'Нет соединения с сервером, повторная попытка через 10 секунд.'
@@ -87,9 +90,9 @@ def parse_book_page(response):
     )
     comments = [comment.text for comment in soup.select('.texts .black')]
     genres = [genres.text for genres in soup.select('span.d_book a')]
-    id = soup.select_one('.r_comm input[name="bookid"]')['value']
+    book_number = soup.select_one('.r_comm input[name="bookid"]')['value']
     book_page = {
-        'id': id,
+        'id': book_number,
         'title': book_name.strip(),
         'author': book_author.strip(),
         'img_src': os.path.join('img', extract_file_extension(book_cover)),
