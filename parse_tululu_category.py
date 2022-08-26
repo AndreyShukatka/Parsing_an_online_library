@@ -153,7 +153,7 @@ def write_json_file(books_json, json_folder, json_name):
 
 
 if __name__ == '__main__':
-    books_json = []
+    books_info = []
     url = 'https://tululu.org/'
     args = input_parsing_command_line()
     start_page = args.start_page
@@ -173,7 +173,7 @@ if __name__ == '__main__':
                 download_image(url, book_page, folder)
             book_page.pop('cover')
             book_page.pop('id')
-            books_json.append(book_page)
+            books_info.append(book_page)
         except requests.HTTPError:
             logging.warning(f'книги "{book_page["title"]}" нет на сервере')
             continue
@@ -183,4 +183,4 @@ if __name__ == '__main__':
             )
             sleep(seconds)
             continue
-    write_json_file(books_json, folder, json_name)
+    write_json_file(books_info, folder, json_name)
