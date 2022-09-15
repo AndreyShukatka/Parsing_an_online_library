@@ -6,6 +6,7 @@ import pathlib
 from more_itertools import chunked
 from math import ceil
 
+
 def get_book_pages(path_file):
     with open(path_file, "r", encoding='utf-8') as books:
         books_pages = books.read()
@@ -28,7 +29,9 @@ def on_reload():
             books=books,
             number_pages=number_pages
         )
-        with open(os.path.join('pages',f'index{number+1}.html'), 'w', encoding="utf8") as file:
+        with open(os.path.join(
+                'pages', f'index{number+1}.html'
+                ), 'w', encoding="utf8") as file:
             file.write(rendered_page)
 
 
