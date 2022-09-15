@@ -1,5 +1,9 @@
-# Парсер книг с сайта tululu.org
+# Локальная библиотека с сайта tululu.org
 Скрипт предназначен для скачивания книг в формате .txt с сайта [tululu.org.](https://tululu.org)
+и создаёт локальный сайт библиотеки.
+
+По [ссылке](https://andreyshukatka.github.io/Parsing_an_online_library) пример такой библиотеки
+
 
 # Установка
 
@@ -12,7 +16,14 @@
 pip install -r requirements.txt
 ```
 
-# Запуск
+# Запуск локального сайта
+Запускайте сайт после того, как скачаете книги и создадите JSON файл
+```
+python render_website.py
+```
+Сайт будет доступен локально через браузер по адресу: http://127.0.0.1:5500 
+
+# Запуск скачивания книг
 
 Запустите скрипт командой:
 
@@ -70,8 +81,3 @@ python parse_tululu_category.py --start_page 700 --end_page 701 --skip_txt
 ```
 python parse_tululu_category.py --start_page 700 --end_page 701 --dest_folder books --json_path books_json
 ```
-
-
-
-
-
