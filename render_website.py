@@ -11,7 +11,6 @@ def get_book_pages(path_file):
         books_pages = books.read()
     books = json.loads(books_pages)
     number_pages = ceil(len(books)/20)
-    print(number_pages)
     chunked_books = chunked(books, 20)
     return chunked_books, number_pages
 
@@ -20,7 +19,7 @@ def on_reload():
     chunked_books, number_pages = get_book_pages(path_file)
     for number, books in enumerate(chunked_books):
         env = Environment(
-            loader=FileSystemLoader('template'),
+            loader=FileSystemLoader(''),
             autoescape=select_autoescape(['html'])
         )
         template = env.get_template('template.html')
@@ -42,5 +41,6 @@ if __name__ == '__main__':
     )
     on_reload()
     server = Server()
-    server.watch('template/template.html', on_reload)
-    server.serve(root='.')
+    server.watch('template.html', on_reload)
+    server.serve(root='', default_filename='index.html')
+    
