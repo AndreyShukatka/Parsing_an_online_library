@@ -23,7 +23,6 @@ def on_reload():
             autoescape=select_autoescape(['html'])
         )
         template = env.get_template('template.html')
-        print(number, number_pages)
         rendered_page = template.render(
             number_page=number,
             books=books,
@@ -43,4 +42,3 @@ if __name__ == '__main__':
     server = Server()
     server.watch('template.html', on_reload)
     server.serve(root='', default_filename='index.html')
-    
