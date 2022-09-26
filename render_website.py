@@ -17,7 +17,7 @@ def get_book_pages(path_file):
 
 
 def on_reload():
-    chunked_books, number_pages = get_book_pages(path_file)
+    chunked_books, pages_number = get_book_pages(path_file)
     env = Environment(
         loader=FileSystemLoader(''),
         autoescape=select_autoescape(['html'])
@@ -25,9 +25,9 @@ def on_reload():
     template = env.get_template('template.html')
     for number, books in enumerate(chunked_books, start=1):
         rendered_page = template.render(
-            number_page=number,
+            page_number=number,
             books=books,
-            number_pages=number_pages
+            pages_number=pages_number
         )
         with open(os.path.join(
                 'pages', f'index{number}.html'
