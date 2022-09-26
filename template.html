@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ru">
   <head>
+
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Моя библиотека</title>
@@ -24,7 +25,7 @@
             <div class="card mb-3" style="max-width: 540px;">
               <div class="row">
                 <div class="col">
-                  <img src='../library/{{book["img_src"]}}' class="card-img" alt="{{book['title']}}">
+                  <img src='../library/{{book["img_src"]|urlencode}}' class="card-img" alt="{{book['title']}}">
                 </div>
                 <div class="col-md-8">
                   <div class="card-body">
@@ -33,7 +34,7 @@
                     {%for genre in book['genres']%}
                       <p class='card-text'><span class="badge badge-secondary">{{genre}}<br></span></p>
                     {% endfor %}
-                    <a href='../library/{{book["book_path"]}}' target="_blank">Читать</a>
+                    <a href='../library/{{ book["book_path"]|urlencode }}' target="_blank">Читать</a>
 
                   </div>
                 </div>
@@ -46,5 +47,9 @@
     <script src="../static/js/jquery-3.5.1.slim.min.js"></script>
     <script src="../static/js/bootstrap.min.js"></script>
     <script src="../static/js/bootstrap.bundle.min.js"></script>
+    <script src="../static/js/bootstrap.bundle.js"></script>
+    <script src="../static/js/bootstrap.esm.js"></script>
+    <script src="../static/js/bootstrap.esm.min.js"></script>
+    <script src="../static/js/bootstrap.js"></script>
   </body>
 </html>
