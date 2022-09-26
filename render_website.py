@@ -23,14 +23,14 @@ def on_reload():
         autoescape=select_autoescape(['html'])
     )
     template = env.get_template('template.html')
-    for number, books in enumerate(chunked_books):
+    for number, books in enumerate(chunked_books, start=1):
         rendered_page = template.render(
             number_page=number,
             books=books,
             number_pages=number_pages
         )
         with open(os.path.join(
-                'pages', f'index{number+1}.html'
+                'pages', f'index{number}.html'
                 ), 'w', encoding="utf8") as file:
             file.write(rendered_page)
 
