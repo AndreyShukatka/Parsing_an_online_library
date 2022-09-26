@@ -10,8 +10,9 @@ from math import ceil
 def get_book_pages(path_file):
     with open(path_file, "r", encoding='utf-8') as books:
         books=json.load(books)
-    number_pages = ceil(len(books)/20)
-    chunked_books = chunked(books, 20)
+    count_per_page = 20
+    number_pages = ceil(len(books)/count_per_page)
+    chunked_books = chunked(books, count_per_page)
     return chunked_books, number_pages
 
 
