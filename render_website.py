@@ -9,9 +9,9 @@ from math import ceil
 
 def get_book_pages(path_file):
     with open(path_file, "r", encoding='utf-8') as books:
-        books=json.load(books)
+        books = json.load(books)
     count_per_page = 20
-    number_pages = ceil(len(books)/count_per_page)
+    number_pages = ceil(len(books) / count_per_page)
     chunked_books = chunked(books, count_per_page)
     return chunked_books, number_pages
 
@@ -31,7 +31,7 @@ def on_reload():
         )
         with open(os.path.join(
                 'pages', f'index{number}.html'
-                ), 'w', encoding="utf8") as file:
+        ), 'w', encoding="utf8") as file:
             file.write(rendered_page)
 
 
